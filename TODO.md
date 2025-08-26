@@ -7,8 +7,8 @@ Objective: Build a microservice that evaluates plain text and audio submissions,
 ## Phase 1 — Architecture & Setup
 
 - [ ] General
-  - [ ] Create .env and .env.example with: PORT, REDIS_HOST, REDIS_PORT, MONGODB_URI, AWS creds/bucket, OPENAI_API_KEY, AZURE_SPEECH_KEY/REGION, DEEPGRAM/ASSEMBLYAI keys, LANGUAGETOOL_KEY (if any), COPYLEAKS creds (optional)
-  - [ ] Add ConfigModule (Nest) to validate env vars
+  - [x] Create .env and .env.example with: PORT, REDIS_HOST, REDIS_PORT, MONGODB_URI, AWS creds/bucket, OPENAI_API_KEY, AZURE_SPEECH_KEY/REGION, DEEPGRAM/ASSEMBLYAI keys, LANGUAGETOOL_KEY (if any), COPYLEAKS creds (optional)
+  - [x] Add ConfigModule (Nest) to validate env vars
   - [ ] Add Docker Compose (Redis, MongoDB) and Dockerfiles for API and worker
   - [ ] CI (GitHub Actions): build, test, lint, docker build
 
@@ -28,22 +28,22 @@ Objective: Build a microservice that evaluates plain text and audio submissions,
     - [ ] audioEvaluation.worker.ts
   - [ ] Shared types for job payloads/results
 
-- [ ] API Endpoints (initial)
-  - [ ] POST /evaluate/text { text, meta } → returns jobId
-  - [ ] POST /evaluate/audio { s3Url, meta } → returns jobId
-  - [ ] GET /results/:id → returns evaluation result/state
+- [x] API Endpoints (initial)
+  - [x] POST /evaluate/text { text, meta } → returns jobId
+  - [x] POST /evaluate/audio { s3Url, meta } → returns jobId
+  - [x] GET /results/:id → returns evaluation result/state
 
-- [ ] Validation & Docs
-  - [ ] DTOs with class-validator + global ValidationPipe
-  - [ ] Swagger at /docs (dev only)
+- [x] Validation & Docs
+  - [x] DTOs with class-validator + global ValidationPipe
+  - [x] Swagger at /docs (dev only)
 
 - [ ] Storage (S3)
   - [ ] S3 client (AWS SDK v3)
   - [ ] Validate access to S3 bucket and pre-signed GET URLs
 
-- [ ] Persistence (MongoDB)
-  - [ ] MongooseModule setup
-  - [ ] Schemas: Evaluation (type, input refs, scores, feedback JSON, states, durations, costs)
+- [x] Persistence (MongoDB)
+  - [x] MongooseModule setup
+  - [x] Schemas: Evaluation (type, input refs, scores, feedback JSON, states, durations, costs)
   - [ ] Repository/services for CRUD
 
 ---
