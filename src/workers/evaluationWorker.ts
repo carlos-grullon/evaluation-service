@@ -9,7 +9,7 @@ async function main() {
   if (!mongoUri) {
     throw new Error('MONGODB_URI is not set. Please configure it in your .env');
   }
-  await mongoose.connect(mongoUri);
+  await mongoose.connect(mongoUri, { dbName: process.env.MONGODB_DB_NAME || undefined });
 
   const EvaluationModel = mongoose.models[Evaluation.name] || mongoose.model(Evaluation.name, EvaluationSchema);
 

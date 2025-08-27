@@ -6,12 +6,15 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Evaluation } from '../persistence/evaluation.schema';
 import { EVALUATION_QUEUE_NAME } from '../queue/queue.tokens';
+import { S3Service } from '../storage/s3.service';
+import { BadRequestException } from '@nestjs/common';
 
 @Injectable()
 export class EvaluationService {
   constructor(
     private readonly queueService: QueueService,
     @InjectModel(Evaluation.name) private readonly evaluationModel: Model<Evaluation>,
+    private readonly s3Service: S3Service,
   ) {}
 
   async createTextEvaluation(dto: CreateTextEvaluationDto) {
@@ -38,6 +41,20 @@ export class EvaluationService {
   }
 
   async createAudioEvaluation(dto: CreateAudioEvaluationDto) {
+    // Basic validation of s3Url
+    const basic = this.s3Service.validateBasicUrl(dto.s3Url);
+    if (!basic.ok) {
+      throw new BadRequestException(`Invalid s3Url: ${basic.reason}`);
+    }
+
+    // Optional HEAD validation controlled by env flag
+    if (process.env.AUDIO_S3_HEAD_VALIDATE === 'true') {
+      const head = await this.s3Service.headValidate(dto.s3Url);
+      if (!head.ok) {
+        throw new BadRequestException(`s3Url not accessible: ${head.reason}`);
+      }
+    }
+
     const job = await this.queueService.addJob(
       EVALUATION_QUEUE_NAME,
       'audio-evaluation',

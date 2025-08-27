@@ -15,11 +15,13 @@ import * as Joi from 'joi';
         REDIS_HOST: Joi.string().default('127.0.0.1'),
         REDIS_PORT: Joi.number().default(6379),
         MONGODB_URI: Joi.string().uri().required(),
+        MONGODB_DB_NAME: Joi.string().optional(),
       }),
     }),
     MongooseModule.forRootAsync({
       useFactory: () => ({
         uri: process.env.MONGODB_URI,
+        dbName: process.env.MONGODB_DB_NAME || undefined,
       }),
     }),
     EvaluationModule,
