@@ -1,4 +1,9 @@
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 
 @Injectable()
 export class ApiKeyGuard implements CanActivate {
@@ -11,14 +16,19 @@ export class ApiKeyGuard implements CanActivate {
       return true;
     }
 
-    const req = context.switchToHttp().getRequest<Request & { headers: Record<string, string | undefined> }>();
-    const headerKey = req.headers[this.headerName] || req.headers[this.headerName.toLowerCase()];
+    const req = context
+      .switchToHttp()
+      .getRequest<Request & { headers: Record<string, string | undefined> }>();
+    const headerKey =
+      req.headers[this.headerName] ||
+      req.headers[this.headerName.toLowerCase()];
 
     // Also support Authorization: ApiKey <key>
     const authHeader = req.headers['authorization'];
-    const token = typeof authHeader === 'string' && authHeader.startsWith('ApiKey ')
-      ? authHeader.slice('ApiKey '.length)
-      : undefined;
+    const token =
+      typeof authHeader === 'string' && authHeader.startsWith('ApiKey ')
+        ? authHeader.slice('ApiKey '.length)
+        : undefined;
 
     const provided = (headerKey as string) || token;
 

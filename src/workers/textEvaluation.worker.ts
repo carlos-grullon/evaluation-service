@@ -1,14 +1,22 @@
 import 'dotenv/config';
-import { Worker } from 'bullmq';
+import { Worker, Job } from 'bullmq';
 import IORedis from 'ioredis';
 import mongoose from 'mongoose';
 import { EvaluationSchema, Evaluation } from '../persistence/evaluation.schema';
+import {
+  TextEvaluationJobPayload,
+  TextEvaluationResult,
+} from '../evaluation/dto/jobs';
 
 async function main() {
   const mongoUri = process.env.MONGODB_URI;
   if (!mongoUri) throw new Error('MONGODB_URI is not set');
-  await mongoose.connect(mongoUri, { dbName: process.env.MONGODB_DB_NAME || undefined });
-  const EvaluationModel = mongoose.models[Evaluation.name] || mongoose.model(Evaluation.name, EvaluationSchema);
+  await mongoose.connect(mongoUri, {
+    dbName: process.env.MONGODB_DB_NAME || undefined,
+  });
+  const EvaluationModel =
+    mongoose.models[Evaluation.name] ||
+    mongoose.model(Evaluation.name, EvaluationSchema);
 
   const connection = new IORedis({
     host: process.env.REDIS_HOST ?? '127.0.0.1',
@@ -18,25 +26,40 @@ async function main() {
 
   const worker = new Worker(
     'evaluation',
-    async (job) => {
+    async (job: Job<TextEvaluationJobPayload, TextEvaluationResult>) => {
       if (job.name !== 'text-evaluation') return; // ignore non-text jobs in this worker
       const jobId = String(job.id);
-      await EvaluationModel.updateOne({ jobId }, { $set: { status: 'processing' } }).exec();
+      await EvaluationModel.updateOne(
+        { jobId },
+        { $set: { status: 'processing' } },
+      ).exec();
       // TODO: implement real text pipeline (LanguageTool + LLM)
       await new Promise((r) => setTimeout(r, 1000));
-      const scores = { grammar: 0.9, vocabulary: 0.85, coherence: 0.88, overall: 0.88 };
-      const feedback = { summary: 'Strong writing with minor issues.', suggestions: ['Consider varying sentence length.'] };
+      const scores: TextEvaluationResult['scores'] = {
+        grammar: 0.9,
+        vocabulary: 0.85,
+        coherence: 0.88,
+        overall: 0.88,
+      };
+      const feedback: NonNullable<TextEvaluationResult['feedback']> = {
+        summary: 'Strong writing with minor issues.',
+        suggestions: ['Consider varying sentence length.'],
+      };
       await EvaluationModel.updateOne(
         { jobId },
         { $set: { status: 'completed', scores, feedback } },
       ).exec();
-      return { success: true, scores };
+      return { success: true, scores } satisfies TextEvaluationResult;
     },
     { connection },
   );
 
-  worker.on('completed', (job) => console.log(`[text-worker] Job ${job.id} completed`));
-  worker.on('failed', (job, error) => console.log(`[text-worker] Job ${job?.id} failed: ${error}`));
+  worker.on('completed', (job) =>
+    console.log(`[text-worker] Job ${job.id} completed`),
+  );
+  worker.on('failed', (job, error) =>
+    console.log(`[text-worker] Job ${job?.id} failed: ${error}`),
+  );
 }
 
 main().catch((e) => {

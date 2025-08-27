@@ -9,9 +9,13 @@ async function main() {
   if (!mongoUri) {
     throw new Error('MONGODB_URI is not set. Please configure it in your .env');
   }
-  await mongoose.connect(mongoUri, { dbName: process.env.MONGODB_DB_NAME || undefined });
+  await mongoose.connect(mongoUri, {
+    dbName: process.env.MONGODB_DB_NAME || undefined,
+  });
 
-  const EvaluationModel = mongoose.models[Evaluation.name] || mongoose.model(Evaluation.name, EvaluationSchema);
+  const EvaluationModel =
+    mongoose.models[Evaluation.name] ||
+    mongoose.model(Evaluation.name, EvaluationSchema);
 
   const connection = new IORedis({
     host: process.env.REDIS_HOST ?? '127.0.0.1',
@@ -26,14 +30,25 @@ async function main() {
       console.log(`[worker] Processing job ${jobId} (${job.name})`);
 
       // mark processing
-      await EvaluationModel.updateOne({ jobId }, { $set: { status: 'processing' } }).exec();
+      await EvaluationModel.updateOne(
+        { jobId },
+        { $set: { status: 'processing' } },
+      ).exec();
 
       try {
         // simulate processing based on job.name
         if (job.name === 'text-evaluation') {
           await new Promise((r) => setTimeout(r, 1000));
-          const scores = { grammar: 0.9, vocabulary: 0.85, coherence: 0.88, overall: 0.88 };
-          const feedback = { summary: 'Strong writing with minor issues.', suggestions: ['Consider varying sentence length.'] };
+          const scores = {
+            grammar: 0.9,
+            vocabulary: 0.85,
+            coherence: 0.88,
+            overall: 0.88,
+          };
+          const feedback = {
+            summary: 'Strong writing with minor issues.',
+            suggestions: ['Consider varying sentence length.'],
+          };
           await EvaluationModel.updateOne(
             { jobId },
             { $set: { status: 'completed', scores, feedback } },
@@ -43,8 +58,16 @@ async function main() {
 
         if (job.name === 'audio-evaluation') {
           await new Promise((r) => setTimeout(r, 1500));
-          const scores = { pronunciation: 0.8, fluency: 0.82, completeness: 0.9, overall: 0.84 };
-          const feedback = { summary: 'Good clarity; work on pacing.', suggestions: ['Reduce filler words.'] };
+          const scores = {
+            pronunciation: 0.8,
+            fluency: 0.82,
+            completeness: 0.9,
+            overall: 0.84,
+          };
+          const feedback = {
+            summary: 'Good clarity; work on pacing.',
+            suggestions: ['Reduce filler words.'],
+          };
           await EvaluationModel.updateOne(
             { jobId },
             { $set: { status: 'completed', scores, feedback } },
@@ -54,11 +77,25 @@ async function main() {
 
         // default handler
         await new Promise((r) => setTimeout(r, 500));
-        await EvaluationModel.updateOne({ jobId }, { $set: { status: 'completed' } }).exec();
+        await EvaluationModel.updateOne(
+          { jobId },
+          { $set: { status: 'completed' } },
+        ).exec();
         return { success: true };
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error(`[worker] Job ${jobId} failed`, err);
-        await EvaluationModel.updateOne({ jobId }, { $set: { status: 'failed', error: String(err?.message || err) } }).exec();
+        await EvaluationModel.updateOne(
+          { jobId },
+          {
+            $set: {
+              status: 'failed',
+              error:
+                err && typeof err === 'object' && 'message' in err
+                  ? String((err as { message?: unknown }).message)
+                  : String(err),
+            },
+          },
+        ).exec();
         throw err;
       }
     },

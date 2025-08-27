@@ -3,7 +3,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { EvaluationModule } from './evaluation/evaluation.module';
 import { ConfigModule } from '@nestjs/config';
-import { MongooseModule } from '@nestjs/mongoose';
+import { MongooseModule, type MongooseModuleOptions } from '@nestjs/mongoose';
 import * as Joi from 'joi';
 import { HealthModule } from './health/health.module';
 
@@ -20,7 +20,7 @@ import { HealthModule } from './health/health.module';
       }),
     }),
     MongooseModule.forRootAsync({
-      useFactory: () => {
+      useFactory: (): MongooseModuleOptions => {
         // derive authSource from URI if present, else default to 'admin' when credentials exist
         let authSource: string | undefined;
         const uri = process.env.MONGODB_URI;
@@ -29,7 +29,8 @@ import { HealthModule } from './health/health.module';
             const u = new URL(uri);
             const hasCreds = !!(u.username || u.password);
             const params = new URLSearchParams(u.search);
-            authSource = params.get('authSource') || (hasCreds ? 'admin' : undefined);
+            authSource =
+              params.get('authSource') || (hasCreds ? 'admin' : undefined);
           }
         } catch {
           // ignore parse errors; rely on env-provided URI
@@ -40,7 +41,7 @@ import { HealthModule } from './health/health.module';
           directConnection: true,
           authSource,
           serverSelectionTimeoutMS: 5000,
-        } as any;
+        };
       },
     }),
     EvaluationModule,

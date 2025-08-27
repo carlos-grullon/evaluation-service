@@ -10,7 +10,9 @@ import { ApiKeyGuard } from '../auth/api-key.guard';
 @Module({
   imports: [
     QueueModule,
-    MongooseModule.forFeature([{ name: Evaluation.name, schema: EvaluationSchema }]),
+    MongooseModule.forFeature([
+      { name: Evaluation.name, schema: EvaluationSchema },
+    ]),
   ],
   controllers: [EvaluationController],
   providers: [EvaluationService, S3Service, ApiKeyGuard],

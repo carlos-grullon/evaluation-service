@@ -8,12 +8,14 @@ import { Evaluation } from '../persistence/evaluation.schema';
 import { EVALUATION_QUEUE_NAME } from '../queue/queue.tokens';
 import { S3Service } from '../storage/s3.service';
 import { BadRequestException } from '@nestjs/common';
+import type { Job } from 'bullmq';
 
 @Injectable()
 export class EvaluationService {
   constructor(
     private readonly queueService: QueueService,
-    @InjectModel(Evaluation.name) private readonly evaluationModel: Model<Evaluation>,
+    @InjectModel(Evaluation.name)
+    private readonly evaluationModel: Model<Evaluation>,
     private readonly s3Service: S3Service,
   ) {}
 
@@ -21,7 +23,11 @@ export class EvaluationService {
     const job = await this.queueService.addJob(
       EVALUATION_QUEUE_NAME,
       'text-evaluation',
-      { text: dto.text, language: dto.language, rubricVersion: dto.rubricVersion },
+      {
+        text: dto.text,
+        language: dto.language,
+        rubricVersion: dto.rubricVersion,
+      },
       {
         removeOnComplete: 1000,
         removeOnFail: 1000,
@@ -58,7 +64,11 @@ export class EvaluationService {
     const job = await this.queueService.addJob(
       EVALUATION_QUEUE_NAME,
       'audio-evaluation',
-      { s3Url: dto.s3Url, referenceText: dto.referenceText, language: dto.language },
+      {
+        s3Url: dto.s3Url,
+        referenceText: dto.referenceText,
+        language: dto.language,
+      },
       {
         removeOnComplete: 1000,
         removeOnFail: 1000,
@@ -70,7 +80,12 @@ export class EvaluationService {
     const doc = await this.evaluationModel.create({
       type: 'audio',
       jobId: String(job.id),
-      input: { s3Url: dto.s3Url, referenceText: dto.referenceText, language: dto.language, meta: {} },
+      input: {
+        s3Url: dto.s3Url,
+        referenceText: dto.referenceText,
+        language: dto.language,
+        meta: {},
+      },
       status: 'pending',
     });
 
@@ -79,10 +94,16 @@ export class EvaluationService {
 
   async getEvaluationStatus(id: string) {
     const q = this.queueService.getQueue(EVALUATION_QUEUE_NAME);
-    const job = await q.getJob(id);
-    const state = job ? await job.getState() : 'not_found';
-    const result = job && state === 'completed' ? await job.returnvalue : undefined;
-    const failedReason = job && state === 'failed' ? job.failedReason : undefined;
+    const job = (await q.getJob(id)) as Job<unknown, unknown> | null;
+    const state: string = job ? await job.getState() : 'not_found';
+    const result: unknown =
+      job && state === 'completed' ? job.returnvalue : undefined;
+    const failedReason: string | undefined =
+      job && state === 'failed'
+        ? job.failedReason
+          ? String(job.failedReason)
+          : undefined
+        : undefined;
 
     // Try to read the evaluation document by jobId to enrich status
     const doc = await this.evaluationModel.findOne({ jobId: id }).lean().exec();

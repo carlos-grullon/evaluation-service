@@ -49,14 +49,16 @@ export function isHttpsS3Url(url: string): boolean {
 }
 
 export async function headObjectIfEnabled(url: string): Promise<boolean> {
-  const enabled = String(process.env.AUDIO_S3_HEAD_VALIDATE || 'false').toLowerCase() === 'true';
+  const enabled =
+    String(process.env.AUDIO_S3_HEAD_VALIDATE || 'false').toLowerCase() ===
+    'true';
   if (!enabled) return true;
   const parts = parseS3Url(url);
   if (!parts) return false;
   const client = getS3();
   try {
     await client.send(
-      new HeadObjectCommand({ Bucket: parts.bucket, Key: parts.key })
+      new HeadObjectCommand({ Bucket: parts.bucket, Key: parts.key }),
     );
     return true;
   } catch {

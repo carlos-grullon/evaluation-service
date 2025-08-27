@@ -12,9 +12,19 @@ export class Evaluation {
   jobId!: string;
 
   @Prop({ type: Object, required: true })
-  input!: { text?: string; s3Url?: string; language?: string; referenceText?: string; meta?: Record<string, any> };
+  input!: {
+    text?: string;
+    s3Url?: string;
+    language?: string;
+    referenceText?: string;
+    meta?: Record<string, any>;
+  };
 
-  @Prop({ required: true, enum: ['pending', 'processing', 'completed', 'failed'], default: 'pending' })
+  @Prop({
+    required: true,
+    enum: ['pending', 'processing', 'completed', 'failed'],
+    default: 'pending',
+  })
   status!: 'pending' | 'processing' | 'completed' | 'failed';
 
   @Prop({ type: Object })

@@ -24,7 +24,12 @@ export class QueueService implements OnModuleDestroy {
     return q;
   }
 
-  async addJob<T = any>(queueName: string, jobName: string, data: T, opts?: Parameters<Queue['add']>[2]) {
+  async addJob<T = any>(
+    queueName: string,
+    jobName: string,
+    data: T,
+    opts?: Parameters<Queue['add']>[2],
+  ) {
     const q = this.getQueue(queueName);
     return q.add(jobName, data, opts);
   }
@@ -41,9 +46,17 @@ export class QueueService implements OnModuleDestroy {
   async onModuleDestroy() {
     await Promise.all(
       Array.from(this.queues.values()).map(async (q) => {
-        try { await q.close(); } catch {}
+        try {
+          await q.close();
+        } catch (e) {
+          console.warn('[queue] Error closing queue', e);
+        }
       }),
     );
-    try { await this.connection.quit(); } catch {}
+    try {
+      await this.connection.quit();
+    } catch (e) {
+      console.warn('[queue] Error quitting Redis connection', e);
+    }
   }
 }

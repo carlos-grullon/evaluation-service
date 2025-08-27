@@ -17,7 +17,8 @@ export class S3Service {
   validateBasicUrl(s3Url: string): { ok: boolean; reason?: string } {
     try {
       const u = new URL(s3Url);
-      if (u.protocol !== 'https:') return { ok: false, reason: 's3Url must be https' };
+      if (u.protocol !== 'https:')
+        return { ok: false, reason: 's3Url must be https' };
       if (this.bucket) {
         const host = u.hostname;
         const path = u.pathname.replace(/^\/+/, '');
@@ -28,7 +29,7 @@ export class S3Service {
         }
       }
       return { ok: true };
-    } catch (e) {
+    } catch {
       return { ok: false, reason: 'invalid URL' };
     }
   }
@@ -37,13 +38,23 @@ export class S3Service {
   async headValidate(s3Url: string): Promise<{ ok: boolean; reason?: string }> {
     try {
       const parsed = this.parseBucketKey(s3Url);
-      if (!parsed) return { ok: false, reason: 'unable to parse bucket/key from url' };
+      if (!parsed)
+        return { ok: false, reason: 'unable to parse bucket/key from url' };
       const { bucket, key } = parsed;
       await this.s3.send(new HeadObjectCommand({ Bucket: bucket, Key: key }));
       return { ok: true };
-    } catch (err: any) {
-      this.logger.warn(`HEAD validation failed: ${err?.name || err}`);
-      return { ok: false, reason: String(err?.name || err?.message || err) };
+    } catch (err: unknown) {
+      const name =
+        err && typeof err === 'object' && 'name' in err
+          ? String((err as { name?: unknown }).name)
+          : undefined;
+      const message =
+        err && typeof err === 'object' && 'message' in err
+          ? String((err as { message?: unknown }).message)
+          : undefined;
+      const summary = name ?? message ?? String(err);
+      this.logger.warn(`HEAD validation failed: ${summary}`);
+      return { ok: false, reason: summary };
     }
   }
 
@@ -55,13 +66,17 @@ export class S3Service {
       const path = u.pathname.replace(/^\/+/, '');
 
       // virtual-hosted-style: bucket.s3.amazonaws.com/key or bucket.s3.<region>.amazonaws.com/key
-      const vhMatch = host.match(/^(?<bucket>[^.]+)\.s3[.-][^.]+\.amazonaws\.com$/) || host.match(/^(?<bucket>[^.]+)\.s3\.amazonaws\.com$/);
+      const vhMatch =
+        host.match(/^(?<bucket>[^.]+)\.s3[.-][^.]+\.amazonaws\.com$/) ||
+        host.match(/^(?<bucket>[^.]+)\.s3\.amazonaws\.com$/);
       if (vhMatch && vhMatch.groups?.bucket) {
         return { bucket: vhMatch.groups.bucket, key: decodeURIComponent(path) };
       }
 
       // path-style: s3.amazonaws.com/bucket/key or s3.<region>.amazonaws.com/bucket/key
-      const pathStyleHost = host.includes('s3.amazonaws.com') || /s3[.-][^.]+\.amazonaws\.com$/.test(host);
+      const pathStyleHost =
+        host.includes('s3.amazonaws.com') ||
+        /s3[.-][^.]+\.amazonaws\.com$/.test(host);
       if (pathStyleHost) {
         const [bucket, ...rest] = path.split('/');
         if (!bucket) return null;
