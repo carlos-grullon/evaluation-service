@@ -6,6 +6,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { Evaluation, EvaluationSchema } from '../persistence/evaluation.schema';
 import { S3Service } from '../storage/s3.service';
 import { ApiKeyGuard } from '../auth/api-key.guard';
+import { EvaluationRepository } from '../persistence/evaluation.repository';
 
 @Module({
   imports: [
@@ -15,6 +16,6 @@ import { ApiKeyGuard } from '../auth/api-key.guard';
     ]),
   ],
   controllers: [EvaluationController],
-  providers: [EvaluationService, S3Service, ApiKeyGuard],
+  providers: [EvaluationService, S3Service, ApiKeyGuard, EvaluationRepository],
 })
 export class EvaluationModule {}

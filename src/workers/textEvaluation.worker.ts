@@ -7,6 +7,7 @@ import {
   TextEvaluationJobPayload,
   TextEvaluationResult,
 } from '../evaluation/dto/jobs';
+import { LanguageToolClient } from '../text/languagetool.client';
 
 async function main() {
   const mongoUri = process.env.MONGODB_URI;
@@ -33,17 +34,34 @@ async function main() {
         { jobId },
         { $set: { status: 'processing' } },
       ).exec();
-      // TODO: implement real text pipeline (LanguageTool + LLM)
-      await new Promise((r) => setTimeout(r, 1000));
+      // LanguageTool grammar/style analysis
+      const lt = new LanguageToolClient();
+      const lang = job.data.language || 'en-US';
+      const res = await lt.check({ text: job.data.text, language: lang });
+
+      // Simple heuristic scoring based on number of matches and text length
+      const length = Math.max(1, job.data.text.trim().split(/\s+/).length);
+      const matches = res.matches.length;
+      const penalty = Math.min(0.5, matches / Math.max(50, length));
+      const grammar = Math.max(0, 1 - penalty);
+      const vocabulary = Math.max(0, 1 - penalty * 0.8);
+      const coherence = Math.max(0, 1 - penalty * 0.6);
+      const overall = Number(
+        ((grammar + vocabulary + coherence) / 3).toFixed(2),
+      );
       const scores: TextEvaluationResult['scores'] = {
-        grammar: 0.9,
-        vocabulary: 0.85,
-        coherence: 0.88,
-        overall: 0.88,
+        grammar: Number(grammar.toFixed(2)),
+        vocabulary: Number(vocabulary.toFixed(2)),
+        coherence: Number(coherence.toFixed(2)),
+        overall,
       };
+      const suggestions = res.matches.slice(0, 5).map((m) => m.message);
       const feedback: NonNullable<TextEvaluationResult['feedback']> = {
-        summary: 'Strong writing with minor issues.',
-        suggestions: ['Consider varying sentence length.'],
+        summary:
+          matches === 0
+            ? 'No issues detected.'
+            : `Detected ${matches} potential issue${matches === 1 ? '' : 's'}.`,
+        suggestions,
       };
       await EvaluationModel.updateOne(
         { jobId },

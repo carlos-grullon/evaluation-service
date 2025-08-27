@@ -2,20 +2,18 @@ import { Injectable } from '@nestjs/common';
 import { QueueService } from '../queue/queue.service';
 import { CreateTextEvaluationDto } from './dto/create-text-evaluation.dto';
 import { CreateAudioEvaluationDto } from './dto/create-audio-evaluation.dto';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
 import { Evaluation } from '../persistence/evaluation.schema';
 import { EVALUATION_QUEUE_NAME } from '../queue/queue.tokens';
 import { S3Service } from '../storage/s3.service';
 import { BadRequestException } from '@nestjs/common';
 import type { Job } from 'bullmq';
+import { EvaluationRepository } from '../persistence/evaluation.repository';
 
 @Injectable()
 export class EvaluationService {
   constructor(
     private readonly queueService: QueueService,
-    @InjectModel(Evaluation.name)
-    private readonly evaluationModel: Model<Evaluation>,
+    private readonly evaluationRepo: EvaluationRepository,
     private readonly s3Service: S3Service,
   ) {}
 
@@ -36,14 +34,14 @@ export class EvaluationService {
       },
     );
 
-    const doc = await this.evaluationModel.create({
+    const created = await this.evaluationRepo.create({
       type: 'text',
       jobId: String(job.id),
       input: { text: dto.text, language: dto.language, meta: {} },
       status: 'pending',
-    });
+    } as Evaluation);
 
-    return { id: doc._id, jobId: job.id };
+    return { id: created.id, jobId: job.id };
   }
 
   async createAudioEvaluation(dto: CreateAudioEvaluationDto) {
@@ -77,7 +75,7 @@ export class EvaluationService {
       },
     );
 
-    const doc = await this.evaluationModel.create({
+    const created = await this.evaluationRepo.create({
       type: 'audio',
       jobId: String(job.id),
       input: {
@@ -87,9 +85,9 @@ export class EvaluationService {
         meta: {},
       },
       status: 'pending',
-    });
+    } as Evaluation);
 
-    return { id: doc._id, jobId: job.id };
+    return { id: created.id, jobId: job.id };
   }
 
   async getEvaluationStatus(id: string) {
@@ -106,7 +104,7 @@ export class EvaluationService {
         : undefined;
 
     // Try to read the evaluation document by jobId to enrich status
-    const doc = await this.evaluationModel.findOne({ jobId: id }).lean().exec();
+    const doc = await this.evaluationRepo.findByJobId(id);
 
     return {
       id,

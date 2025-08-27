@@ -3,7 +3,7 @@ import { Worker, Job } from 'bullmq';
 import IORedis from 'ioredis';
 import mongoose from 'mongoose';
 import { EvaluationSchema, Evaluation } from '../persistence/evaluation.schema';
-import { isHttpsS3Url, headObjectIfEnabled } from '../storage/s3.client';
+import { S3Service } from '../storage/s3.service';
 import {
   AudioEvaluationJobPayload,
   AudioEvaluationResult,
@@ -35,20 +35,28 @@ async function main() {
         { $set: { status: 'processing' } },
       ).exec();
 
-      // Basic S3 URL validation stub
-      const s3Url: string | undefined =
-        (job.data && job.data.s3Url) || undefined;
-      if (
-        !s3Url ||
-        !isHttpsS3Url(s3Url) ||
-        !(await headObjectIfEnabled(s3Url))
-      ) {
-        const msg = 'Invalid or inaccessible S3 URL';
+      // Basic S3 URL validation and optional HEAD probe
+      const s3 = new S3Service();
+      const s3Url: string | undefined = job.data?.s3Url ?? undefined;
+      const basic = s3Url ? s3.validateBasicUrl(s3Url) : { ok: false };
+      if (!basic.ok) {
+        const msg = `Invalid s3Url: ${basic.reason ?? 'unknown'}`;
         await EvaluationModel.updateOne(
           { jobId },
           { $set: { status: 'failed', error: msg } },
         ).exec();
         throw new Error(msg);
+      }
+      if (process.env.AUDIO_S3_HEAD_VALIDATE === 'true') {
+        const head = await s3.headValidate(s3Url);
+        if (!head.ok) {
+          const msg = `s3Url not accessible: ${head.reason ?? 'HEAD failed'}`;
+          await EvaluationModel.updateOne(
+            { jobId },
+            { $set: { status: 'failed', error: msg } },
+          ).exec();
+          throw new Error(msg);
+        }
       }
 
       // TODO: Implement ASR + Azure Pronunciation Assessment pipeline

@@ -50,7 +50,20 @@ NestJS-based API for asynchronous text and audio evaluations. Jobs are queued wi
 
 - Core: `PORT`, `MONGODB_URI`, `MONGODB_DB_NAME`, `REDIS_HOST`, `REDIS_PORT`.
 - AWS: `AWS_REGION`, `AWS_S3_BUCKET`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`.
+- LanguageTool (text): `LANGUAGETOOL_API_KEY` (optional), `LANGUAGETOOL_API_URL` (optional; defaults to public API)
 - Options: `AUDIO_S3_HEAD_VALIDATE` (`true|false`).
+
+### Text evaluation (LanguageTool)
+
+- The text worker calls LanguageTool to detect grammar/style issues.
+- Configure a self-hosted server by setting `LANGUAGETOOL_API_URL` (e.g. `http://localhost:8010/v2/check`) and optionally `LANGUAGETOOL_API_KEY`.
+- Scores are derived heuristically from the number of matches vs text length; this is a scaffold you can refine or combine with an LLM.
+
+### Audio S3 validation
+
+- `AUDIO_S3_HEAD_VALIDATE=true` makes both the API (`EvaluationService.createAudioEvaluation`) and the worker (`audioEvaluation.worker.ts`) perform an S3 HEAD request against the provided `s3Url`.
+- If the object is missing or inaccessible, the API returns `400 Bad Request` and the worker fails the job early with a clear error. This prevents wasting compute on bad inputs.
+- Basic URL validation (HTTPS S3 URL shape) is always applied; the HEAD probe is optional and controlled by the flag.
 
 ## Running locally
 
