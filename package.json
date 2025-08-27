@@ -1,4 +1,5 @@
 {
+  "$schema": "https://json.schemastore.org/package.json",
   "name": "evaluation-service",
   "version": "0.0.1",
   "description": "",
@@ -6,13 +7,15 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "dev": "concurrently \"npm run start:dev\" \"ts-node -r tsconfig-paths/register src/workers/evaluationWorker.ts\"",
+    "dev": "concurrently \"npm run start:dev\" \"npm run worker:text\" \"npm run worker:audio\"",
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
+    "worker:text": "ts-node -r tsconfig-paths/register src/workers/textEvaluation.worker.ts",
+    "worker:audio": "ts-node -r tsconfig-paths/register src/workers/audioEvaluation.worker.ts",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",

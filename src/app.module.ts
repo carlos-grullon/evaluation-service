@@ -20,10 +20,28 @@ import { HealthModule } from './health/health.module';
       }),
     }),
     MongooseModule.forRootAsync({
-      useFactory: () => ({
-        uri: process.env.MONGODB_URI,
-        dbName: process.env.MONGODB_DB_NAME || undefined,
-      }),
+      useFactory: () => {
+        // derive authSource from URI if present, else default to 'admin' when credentials exist
+        let authSource: string | undefined;
+        const uri = process.env.MONGODB_URI;
+        try {
+          if (uri) {
+            const u = new URL(uri);
+            const hasCreds = !!(u.username || u.password);
+            const params = new URLSearchParams(u.search);
+            authSource = params.get('authSource') || (hasCreds ? 'admin' : undefined);
+          }
+        } catch {
+          // ignore parse errors; rely on env-provided URI
+        }
+        return {
+          uri,
+          dbName: process.env.MONGODB_DB_NAME || undefined,
+          directConnection: true,
+          authSource,
+          serverSelectionTimeoutMS: 5000,
+        } as any;
+      },
     }),
     EvaluationModule,
     HealthModule,

@@ -35,12 +35,31 @@ services:
       - mongo
       - redis
 
-  worker:
+  worker-text:
     build:
       context: .
       dockerfile: Dockerfile.worker
     image: evaluation-service-worker:latest
     restart: unless-stopped
+    command: ["node", "dist/workers/textEvaluation.worker.js"]
+    env_file:
+      - .env
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - MONGODB_URI=mongodb://mongo:27017
+      - MONGODB_DB_NAME=evaluation_service
+    depends_on:
+      - mongo
+      - redis
+
+  worker-audio:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    image: evaluation-service-worker:latest
+    restart: unless-stopped
+    command: ["node", "dist/workers/audioEvaluation.worker.js"]
     env_file:
       - .env
     environment:
