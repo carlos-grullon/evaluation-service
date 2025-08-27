@@ -5,6 +5,7 @@ import { EvaluationModule } from './evaluation/evaluation.module';
 import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import * as Joi from 'joi';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import * as Joi from 'joi';
       }),
     }),
     EvaluationModule,
+    HealthModule,
   ],
   controllers: [AppController],
   providers: [AppService],

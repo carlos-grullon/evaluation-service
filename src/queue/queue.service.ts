@@ -29,6 +29,15 @@ export class QueueService implements OnModuleDestroy {
     return q.add(jobName, data, opts);
   }
 
+  async ping(): Promise<boolean> {
+    try {
+      const res = await this.connection.ping();
+      return res === 'PONG' || res === 'pong';
+    } catch {
+      return false;
+    }
+  }
+
   async onModuleDestroy() {
     await Promise.all(
       Array.from(this.queues.values()).map(async (q) => {

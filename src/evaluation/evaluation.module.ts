@@ -5,6 +5,7 @@ import { QueueModule } from '../queue/queue.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Evaluation, EvaluationSchema } from '../persistence/evaluation.schema';
 import { S3Service } from '../storage/s3.service';
+import { ApiKeyGuard } from '../auth/api-key.guard';
 
 @Module({
   imports: [
@@ -12,6 +13,6 @@ import { S3Service } from '../storage/s3.service';
     MongooseModule.forFeature([{ name: Evaluation.name, schema: EvaluationSchema }]),
   ],
   controllers: [EvaluationController],
-  providers: [EvaluationService, S3Service],
+  providers: [EvaluationService, S3Service, ApiKeyGuard],
 })
 export class EvaluationModule {}

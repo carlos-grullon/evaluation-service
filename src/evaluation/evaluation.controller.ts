@@ -1,9 +1,11 @@
-import { Controller, Get, Param, Post, Body } from '@nestjs/common';
+import { Controller, Get, Param, Post, Body, UseGuards } from '@nestjs/common';
 import { EvaluationService } from './evaluation.service';
 import { CreateTextEvaluationDto } from './dto/create-text-evaluation.dto';
 import { CreateAudioEvaluationDto } from './dto/create-audio-evaluation.dto';
+import { ApiKeyGuard } from '../auth/api-key.guard';
 
 @Controller()
+@UseGuards(ApiKeyGuard)
 export class EvaluationController {
   constructor(private readonly evaluationService: EvaluationService) {}
 
